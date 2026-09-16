@@ -1,0 +1,2831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>OCTOPUS ESCAPE - Retro Arcade</title>
+
+    <!-- =========================
+         CSS
+    ========================== -->
+    <style>
+
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Press Start 2P', monospace;
+            overflow: hidden;
+        }
+
+        #screen {
+            position: relative;
+            width: 920px;
+            max-width: 98vw;
+
+            background: #000;
+
+            border: 4px solid #00ff41;
+
+            box-shadow:
+                0 0 20px #00ff41,
+                inset 0 0 20px rgba(0,255,65,.25);
+
+            padding: 14px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            gap: 9px;
+        }
+
+        /* TITLE */
+
+        #title-bar {
+            color: #00ff41;
+            font-size: 20px;
+            letter-spacing: 4px;
+
+            text-shadow:
+                0 0 8px #00ff41;
+
+            text-align: center;
+        }
+
+        /* HUD */
+
+        #hud {
+            width: 100%;
+
+            display: grid;
+            grid-template-columns: repeat(6,1fr);
+
+            gap: 6px;
+
+            color: #00ff41;
+            font-size: 8px;
+        }
+
+        .hud-box {
+            border: 1px solid #00ff41;
+
+            padding: 8px 4px;
+
+            text-align: center;
+
+            background: rgba(0,255,65,.05);
+        }
+
+        .hud-box.danger {
+            border-color: #ff3030;
+            color: #ff3030;
+
+            animation: dangerHud .4s infinite;
+        }
+
+        @keyframes dangerHud {
+
+            0%,100% {
+                box-shadow: 0 0 4px #ff3030;
+            }
+
+            50% {
+                box-shadow: 0 0 15px #ff3030;
+            }
+        }
+
+        /* GAME */
+
+        #canvas-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+
+            width: 100%;
+            height: auto;
+
+            background: #001010;
+
+            border: 2px solid #00ff41;
+
+            image-rendering: pixelated;
+        }
+
+        /* VIGNETTE */
+
+        #vignette {
+            position: absolute;
+            inset: 0;
+
+            pointer-events: none;
+
+            box-shadow:
+                inset 0 0 60px 10px rgba(0,0,0,.8);
+        }
+
+        #vignette.danger {
+            box-shadow:
+                inset 0 0 70px 15px rgba(255,0,0,.55);
+
+            animation: dangerPulse .5s infinite;
+        }
+
+        @keyframes dangerPulse {
+
+            0%,100% {
+                opacity: .7;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* OXYGEN */
+
+        #oxygen-meter {
+            position: absolute;
+
+            left: 14px;
+            bottom: 14px;
+
+            width: 190px;
+
+            padding: 8px;
+
+            border: 1px solid #3bffe9;
+
+            background: rgba(0,0,0,.8);
+
+            color: #3bffe9;
+
+            z-index: 3;
+        }
+
+        .meter-title {
+            font-size: 8px;
+            margin-bottom: 6px;
+        }
+
+        .meter-bar {
+            height: 13px;
+
+            border: 1px solid #3bffe9;
+
+            background: #001818;
+        }
+
+        #oxygen-fill {
+            height: 100%;
+            width: 100%;
+
+            background: #3bffe9;
+
+            transition: width .15s;
+        }
+
+        #oxygen-reading {
+            font-size: 8px;
+
+            margin-top: 6px;
+
+            text-align: right;
+        }
+
+        /* RADAR */
+
+        #radar {
+            position: absolute;
+
+            right: 14px;
+            bottom: 14px;
+
+            width: 150px;
+
+            padding: 8px;
+
+            border: 1px solid #00ff41;
+
+            background: rgba(0,0,0,.82);
+
+            z-index: 3;
+        }
+
+        .radar-title {
+            color: #00ff41;
+
+            font-size: 7px;
+
+            text-align: center;
+
+            margin-bottom: 5px;
+        }
+
+        #radar-screen {
+            position: relative;
+
+            width: 120px;
+            height: 120px;
+
+            margin: auto;
+
+            border: 1px solid #00ff41;
+
+            border-radius: 50%;
+
+            overflow: hidden;
+
+            background:
+                radial-gradient(
+                    circle,
+                    transparent 24%,
+                    rgba(0,255,65,.08) 25%,
+                    transparent 26%
+                ),
+                radial-gradient(
+                    circle,
+                    transparent 49%,
+                    rgba(0,255,65,.08) 50%,
+                    transparent 51%
+                );
+        }
+
+        #radar-screen::before,
+        #radar-screen::after {
+            content: "";
+
+            position: absolute;
+
+            background: rgba(0,255,65,.18);
+        }
+
+        #radar-screen::before {
+            width: 1px;
+            height: 100%;
+
+            left: 50%;
+            top: 0;
+        }
+
+        #radar-screen::after {
+            width: 100%;
+            height: 1px;
+
+            left: 0;
+            top: 50%;
+        }
+
+        #radar-player {
+            position: absolute;
+
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: #3bffe9;
+
+            left: 56px;
+            top: 56px;
+
+            box-shadow: 0 0 8px #3bffe9;
+
+            z-index: 3;
+        }
+
+        .radar-dot {
+            position: absolute;
+
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: #ff3030;
+
+            box-shadow: 0 0 8px #ff3030;
+
+            transform: translate(-50%,-50%);
+        }
+
+        .radar-line {
+            position: absolute;
+
+            width: 50%;
+            height: 1px;
+
+            background: #00ff41;
+
+            left: 50%;
+            top: 50%;
+
+            transform-origin: left center;
+
+            animation: radarSweep 2s linear infinite;
+        }
+
+        @keyframes radarSweep {
+
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #radar-status {
+            color: #00ff41;
+
+            font-size: 6px;
+
+            text-align: center;
+
+            margin-top: 6px;
+        }
+
+        /* OVERLAYS */
+
+        #start-overlay,
+        #message-overlay {
+
+            position: absolute;
+
+            inset: 0;
+
+            background: rgba(0,0,0,.92);
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+            align-items: center;
+
+            gap: 20px;
+
+            text-align: center;
+
+            padding: 25px;
+
+            z-index: 10;
+        }
+
+        #message-overlay {
+            background: rgba(0,0,0,.9);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #start-title {
+
+            color: #00ff41;
+
+            font-size: 34px;
+
+            line-height: 1.4;
+
+            text-shadow:
+                0 0 6px #00ff41,
+                0 0 20px #00ff41;
+
+            animation: titlePulse 1.6s infinite;
+        }
+
+        @keyframes titlePulse {
+
+            0%,100% {
+                text-shadow:
+                    0 0 6px #00ff41,
+                    0 0 20px #00ff41;
+            }
+
+            50% {
+                text-shadow:
+                    0 0 15px #00ff41,
+                    0 0 35px #00ff41;
+            }
+        }
+
+        #start-sub {
+
+            color: #3bffe9;
+
+            font-size: 8px;
+
+            line-height: 2;
+
+            max-width: 650px;
+        }
+
+        #start-hint,
+        #restart-hint {
+
+            color: #00ff41;
+
+            font-size: 10px;
+
+            animation: blink 1s step-start infinite;
+        }
+
+        @keyframes blink {
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        #message-text {
+
+            color: #00ff41;
+
+            font-size: 15px;
+
+            line-height: 2;
+
+            white-space: pre-line;
+        }
+
+        /* SCANLINES */
+
+        .scanlines {
+
+            position: absolute;
+
+            inset: 0;
+
+            pointer-events: none;
+
+            z-index: 20;
+
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0px,
+                    transparent 1px,
+                    rgba(0,0,0,.28) 2px,
+                    rgba(0,0,0,.28) 3px
+                );
+        }
+
+        /* INSTRUCTIONS */
+
+        #instructions {
+
+            color: #00ff41;
+
+            font-size: 7px;
+
+            opacity: .65;
+
+            text-align: center;
+
+            letter-spacing: 1px;
+        }
+
+        /* SHAKE */
+
+        #screen.shake {
+            animation: shake .25s;
+        }
+
+        @keyframes shake {
+
+            0% {
+                transform: translate(0,0);
+            }
+
+            20% {
+                transform: translate(-4px,3px);
+            }
+
+            40% {
+                transform: translate(4px,-3px);
+            }
+
+            60% {
+                transform: translate(-3px,-2px);
+            }
+
+            80% {
+                transform: translate(3px,2px);
+            }
+
+            100% {
+                transform: translate(0,0);
+            }
+        }
+
+        /* MOBILE */
+
+        @media(max-width:750px) {
+
+            #screen {
+                padding: 8px;
+            }
+
+            #title-bar {
+                font-size: 14px;
+            }
+
+            #hud {
+                grid-template-columns: repeat(3,1fr);
+            }
+
+            #oxygen-meter {
+                width: 150px;
+            }
+
+            #radar {
+                width: 130px;
+            }
+
+            #radar-screen {
+                width: 105px;
+                height: 105px;
+            }
+
+            #start-title {
+                font-size: 25px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div id="screen">
+
+    <div id="title-bar">
+        OCTOPUS ESCAPE
+    </div>
+
+    <!-- =========================
+         HUD
+    ========================== -->
+
+    <div id="hud">
+
+        <div class="hud-box">
+            SCORE:
+            <span id="score">0</span>
+        </div>
+
+        <div class="hud-box">
+            LEVEL:
+            <span id="level">1</span>
+        </div>
+
+        <div class="hud-box">
+            KEYS:
+            <span id="keys">0/1</span>
+        </div>
+
+        <div class="hud-box">
+            OXYGEN:
+            <span id="oxygen">100</span>%
+        </div>
+
+        <div class="hud-box" id="flood-box">
+            FLOOD:
+            <span id="flood">0</span>%
+        </div>
+
+        <div class="hud-box" id="proximity-box">
+            OCTOPUS:
+            <span id="proximity">---</span>m
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         GAME AREA
+    ========================== -->
+
+    <div id="canvas-wrap">
+
+        <canvas
+            id="gameCanvas"
+            width="800"
+            height="500">
+        </canvas>
+
+
+        <!-- VIGNETTE -->
+
+        <div id="vignette"></div>
+
+
+        <!-- OXYGEN -->
+
+        <div id="oxygen-meter">
+
+            <div class="meter-title">
+                OXYGEN METER
+            </div>
+
+            <div class="meter-bar">
+
+                <div id="oxygen-fill"></div>
+
+            </div>
+
+            <div id="oxygen-reading">
+                100%
+            </div>
+
+        </div>
+
+
+        <!-- RADAR -->
+
+        <div id="radar">
+
+            <div class="radar-title">
+                ENEMY RADAR
+            </div>
+
+            <div id="radar-screen">
+
+                <div id="radar-player"></div>
+
+                <div id="radar-enemies"></div>
+
+                <div class="radar-line"></div>
+
+            </div>
+
+            <div id="radar-status">
+                SCANNING...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- SCANLINES -->
+
+    <div class="scanlines"></div>
+
+
+    <!-- =========================
+         START SCREEN
+    ========================== -->
+
+    <div id="start-overlay">
+
+        <div id="start-title">
+            OCTOPUS<br>
+            ESCAPE
+        </div>
+
+        <div id="start-sub">
+
+            FIND THE KEYS.<br>
+            REACH THE SAFE DOOR.<br>
+            AVOID THE OCTOPUS.<br>
+            ESCAPE BEFORE THE FLOOD RISES.
+
+        </div>
+
+        <div id="start-hint">
+            PRESS [ENTER] OR CLICK TO START
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         MESSAGE SCREEN
+    ========================== -->
+
+    <div id="message-overlay" class="hidden">
+
+        <div id="message-text"></div>
+
+        <div id="restart-hint">
+            PRESS [ENTER] OR CLICK TO CONTINUE
+        </div>
+
+    </div>
+
+
+    <div id="instructions">
+
+        ARROW KEYS / WASD TO MOVE
+        &nbsp; | &nbsp;
+        COLLECT ALL KEYS
+        &nbsp; | &nbsp;
+        REACH EXIT
+        &nbsp; | &nbsp;
+        SURVIVE
+
+    </div>
+
+</div>
+
+
+<!-- ==================================================
+     JAVASCRIPT
+================================================== -->
+
+<script>
+
+"use strict";
+
+
+/* =========================================
+   GET HTML ELEMENTS
+========================================= */
+
+const canvas =
+    document.getElementById("gameCanvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+const screen =
+    document.getElementById("screen");
+
+const startOverlay =
+    document.getElementById("start-overlay");
+
+const messageOverlay =
+    document.getElementById("message-overlay");
+
+const messageText =
+    document.getElementById("message-text");
+
+const scoreEl =
+    document.getElementById("score");
+
+const levelEl =
+    document.getElementById("level");
+
+const keysEl =
+    document.getElementById("keys");
+
+const oxygenEl =
+    document.getElementById("oxygen");
+
+const floodEl =
+    document.getElementById("flood");
+
+const proximityEl =
+    document.getElementById("proximity");
+
+const oxygenFill =
+    document.getElementById("oxygen-fill");
+
+const oxygenReading =
+    document.getElementById("oxygen-reading");
+
+const floodBox =
+    document.getElementById("flood-box");
+
+const proximityBox =
+    document.getElementById("proximity-box");
+
+const vignette =
+    document.getElementById("vignette");
+
+const radarEnemies =
+    document.getElementById("radar-enemies");
+
+const radarStatus =
+    document.getElementById("radar-status");
+
+
+/* =========================================
+   GAME SETTINGS
+========================================= */
+
+const TOTAL_LEVELS = 5;
+
+const levelSettings = [
+
+    {
+        keys: 1,
+        enemies: 1,
+        enemySpeed: .65,
+        floodRate: .025,
+        oxygenDrain: .07,
+        obstacles: 3
+    },
+
+    {
+        keys: 2,
+        enemies: 2,
+        enemySpeed: .85,
+        floodRate: .035,
+        oxygenDrain: .10,
+        obstacles: 5
+    },
+
+    {
+        keys: 3,
+        enemies: 3,
+        enemySpeed: 1.05,
+        floodRate: .050,
+        oxygenDrain: .14,
+        obstacles: 7
+    },
+
+    {
+        keys: 4,
+        enemies: 4,
+        enemySpeed: 1.25,
+        floodRate: .070,
+        oxygenDrain: .18,
+        obstacles: 9
+    },
+
+    {
+        keys: 5,
+        enemies: 5,
+        enemySpeed: 1.50,
+        floodRate: .095,
+        oxygenDrain: .23,
+        obstacles: 12
+    }
+
+];
+
+
+/* =========================================
+   GAME VARIABLES
+========================================= */
+
+let gameState = "start";
+
+let score = 0;
+
+let level = 1;
+
+let oxygen = 100;
+
+let flood = 0;
+
+let collectedKeys = 0;
+
+let requiredKeys = 1;
+
+let lastTime = 0;
+
+let animationStarted = false;
+
+const pressed = {};
+
+
+let keys = [];
+
+let enemies = [];
+
+let obstacles = [];
+
+
+/* =========================================
+   PLAYER
+========================================= */
+
+const player = {
+
+    x: 50,
+
+    y: 250,
+
+    radius: 11,
+
+    speed: 3.4
+
+};
+
+
+/* =========================================
+   EXIT DOOR
+========================================= */
+
+const door = {
+
+    x: 740,
+
+    y: 250,
+
+    width: 42,
+
+    height: 55
+
+};
+
+
+/* =========================================
+   UTILITY FUNCTIONS
+========================================= */
+
+function random(min,max) {
+
+    return Math.random() *
+        (max-min) + min;
+
+}
+
+
+function randomInt(min,max) {
+
+    return Math.floor(
+        random(min,max+1)
+    );
+
+}
+
+
+function clamp(value,min,max) {
+
+    return Math.max(
+        min,
+        Math.min(max,value)
+    );
+
+}
+
+
+function distance(a,b) {
+
+    return Math.hypot(
+        a.x-b.x,
+        a.y-b.y
+    );
+
+}
+
+
+/* =========================================
+   COLLISION
+========================================= */
+
+function circleRectCollision(circle,rect) {
+
+    const closestX =
+        clamp(
+            circle.x,
+            rect.x,
+            rect.x+rect.width
+        );
+
+    const closestY =
+        clamp(
+            circle.y,
+            rect.y,
+            rect.y+rect.height
+        );
+
+    const dx =
+        circle.x-closestX;
+
+    const dy =
+        circle.y-closestY;
+
+    return (
+        dx*dx + dy*dy <
+        circle.radius*circle.radius
+    );
+
+}
+
+
+/* =========================================
+   FIND FREE POSITION
+========================================= */
+
+function validPosition(
+    x,
+    y,
+    minDistanceFromPlayer=0
+) {
+
+    if (
+        Math.hypot(
+            x-player.x,
+            y-player.y
+        ) < minDistanceFromPlayer
+    ) {
+
+        return false;
+
+    }
+
+
+    for(const obstacle of obstacles) {
+
+        if(
+
+            x > obstacle.x-20 &&
+
+            x <
+            obstacle.x+
+            obstacle.width+20 &&
+
+            y > obstacle.y-20 &&
+
+            y <
+            obstacle.y+
+            obstacle.height+20
+
+        ) {
+
+            return false;
+
+        }
+
+    }
+
+    return true;
+
+}
+
+
+function findFreePosition(
+    minDistance=80
+) {
+
+    for(let i=0;i<200;i++) {
+
+        const x =
+            randomInt(45,755);
+
+        const y =
+            randomInt(45,455);
+
+        if(
+            validPosition(
+                x,
+                y,
+                minDistance
+            )
+        ) {
+
+            return {
+                x:x,
+                y:y
+            };
+
+        }
+
+    }
+
+    return {
+        x:400,
+        y:250
+    };
+
+}
+
+
+/* =========================================
+   KEYBOARD
+========================================= */
+
+window.addEventListener(
+    "keydown",
+    function(event) {
+
+        const key =
+            event.key.toLowerCase();
+
+        pressed[key] = true;
+
+
+        if(
+            key === "arrowup" ||
+            key === "arrowdown" ||
+            key === "arrowleft" ||
+            key === "arrowright" ||
+            key === " "
+        ) {
+
+            event.preventDefault();
+
+        }
+
+
+        /* ENTER */
+
+        if(event.code === "Enter") {
+
+            event.preventDefault();
+
+
+            if(gameState === "start") {
+
+                startGame();
+
+            }
+
+            else if(
+                gameState === "levelComplete"
+            ) {
+
+                nextLevel();
+
+            }
+
+            else if(
+                gameState === "gameover" ||
+                gameState === "win"
+            ) {
+
+                resetGame();
+
+                startGame();
+
+            }
+
+        }
+
+    }
+);
+
+
+window.addEventListener(
+    "keyup",
+    function(event) {
+
+        pressed[
+            event.key.toLowerCase()
+        ] = false;
+
+    }
+);
+
+
+/* =========================================
+   CLICK
+========================================= */
+
+startOverlay.addEventListener(
+    "click",
+    startGame
+);
+
+
+messageOverlay.addEventListener(
+    "click",
+    function() {
+
+        if(
+            gameState ===
+            "levelComplete"
+        ) {
+
+            nextLevel();
+
+        }
+
+        else {
+
+            resetGame();
+
+            startGame();
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   START
+========================================= */
+
+function startGame() {
+
+    score = 0;
+
+    level = 1;
+
+    gameState = "playing";
+
+    startOverlay.classList.add(
+        "hidden"
+    );
+
+    messageOverlay.classList.add(
+        "hidden"
+    );
+
+    createLevel();
+
+
+    if(!animationStarted) {
+
+        animationStarted = true;
+
+        lastTime =
+            performance.now();
+
+        requestAnimationFrame(
+            gameLoop
+        );
+
+    }
+
+}
+
+
+/* =========================================
+   RESET
+========================================= */
+
+function resetGame() {
+
+    score = 0;
+
+    level = 1;
+
+    oxygen = 100;
+
+    flood = 0;
+
+    collectedKeys = 0;
+
+    keys = [];
+
+    enemies = [];
+
+    obstacles = [];
+
+}
+
+
+/* =========================================
+   CREATE LEVEL
+========================================= */
+
+function createLevel() {
+
+    const settings =
+        levelSettings[level-1];
+
+
+    requiredKeys =
+        settings.keys;
+
+    collectedKeys = 0;
+
+    oxygen = 100;
+
+    flood = 0;
+
+
+    /* PLAYER */
+
+    player.x = 50;
+
+    player.y =
+        randomInt(60,440);
+
+
+    /* OBSTACLES */
+
+    obstacles = [];
+
+
+    for(
+        let i=0;
+        i<settings.obstacles;
+        i++
+    ) {
+
+        let placed = false;
+
+
+        for(
+            let attempt=0;
+            attempt<100 && !placed;
+            attempt++
+        ) {
+
+            const obstacle = {
+
+                x:randomInt(120,650),
+
+                y:randomInt(50,430),
+
+                width:randomInt(35,75),
+
+                height:randomInt(22,50)
+
+            };
+
+
+            if(
+                Math.hypot(
+
+                    obstacle.x+
+                    obstacle.width/2-
+                    player.x,
+
+                    obstacle.y+
+                    obstacle.height/2-
+                    player.y
+
+                ) > 100
+            ) {
+
+                const overlaps =
+                    obstacles.some(
+                        existing =>
+
+                            obstacle.x <
+                            existing.x+
+                            existing.width+15 &&
+
+                            obstacle.x+
+                            obstacle.width+15 >
+                            existing.x &&
+
+                            obstacle.y <
+                            existing.y+
+                            existing.height+15 &&
+
+                            obstacle.y+
+                            obstacle.height+15 >
+                            existing.y
+                    );
+
+
+                if(!overlaps) {
+
+                    obstacles.push(
+                        obstacle
+                    );
+
+                    placed = true;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    /* DOOR */
+
+    const doorPos =
+        findFreePosition(250);
+
+
+    door.x =
+        clamp(
+            doorPos.x,
+            620,
+            755
+        );
+
+    door.y =
+        clamp(
+            doorPos.y,
+            55,
+            445
+        );
+
+
+    /* KEYS */
+
+    keys = [];
+
+
+    for(
+        let i=0;
+        i<requiredKeys;
+        i++
+    ) {
+
+        const pos =
+            findFreePosition(100);
+
+
+        keys.push({
+
+            x:pos.x,
+
+            y:pos.y,
+
+            collected:false,
+
+            pulse:
+                Math.random() *
+                Math.PI*2
+
+        });
+
+    }
+
+
+    /* ENEMIES */
+
+    enemies = [];
+
+
+    for(
+        let i=0;
+        i<settings.enemies;
+        i++
+    ) {
+
+        const pos =
+            findFreePosition(250);
+
+
+        enemies.push({
+
+            x:pos.x,
+
+            y:pos.y,
+
+            radius:19,
+
+            speed:
+                settings.enemySpeed,
+
+            angle:
+                Math.random() *
+                Math.PI*2,
+
+            wanderTimer:
+                random(500,1800)
+
+        });
+
+    }
+
+
+    updateHUD();
+
+}
+
+
+/* =========================================
+   NEXT LEVEL
+========================================= */
+
+function nextLevel() {
+
+    if(level >= TOTAL_LEVELS) {
+
+        gameState = "win";
+
+        showMessage(
+
+            "ALL LEVELS CLEARED!\n\n" +
+
+            "YOU ESCAPED THE OCTOPUS!\n\n" +
+
+            "FINAL SCORE: " +
+            Math.floor(score) +
+
+            "\n\nPRESS ENTER TO PLAY AGAIN"
+
+        );
+
+        return;
+
+    }
+
+
+    level++;
+
+    score += level*500;
+
+    gameState = "playing";
+
+    messageOverlay.classList.add(
+        "hidden"
+    );
+
+    createLevel();
+
+}
+
+
+/* =========================================
+   GAME LOOP
+========================================= */
+
+function gameLoop(time) {
+
+    const delta =
+        Math.min(
+            time-lastTime,
+            50
+        );
+
+    lastTime = time;
+
+
+    if(gameState === "playing") {
+
+        update(delta);
+
+    }
+
+
+    draw();
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+/* =========================================
+   UPDATE
+========================================= */
+
+function update(delta) {
+
+    const settings =
+        levelSettings[level-1];
+
+    const dt =
+        delta/16.67;
+
+
+    let dx = 0;
+
+    let dy = 0;
+
+
+    /* MOVEMENT */
+
+    if(
+        pressed["arrowup"] ||
+        pressed["w"]
+    ) {
+
+        dy--;
+
+    }
+
+
+    if(
+        pressed["arrowdown"] ||
+        pressed["s"]
+    ) {
+
+        dy++;
+
+    }
+
+
+    if(
+        pressed["arrowleft"] ||
+        pressed["a"]
+    ) {
+
+        dx--;
+
+    }
+
+
+    if(
+        pressed["arrowright"] ||
+        pressed["d"]
+    ) {
+
+        dx++;
+
+    }
+
+
+    /* DIAGONAL */
+
+    if(dx !== 0 && dy !== 0) {
+
+        dx *= .707;
+
+        dy *= .707;
+
+    }
+
+
+    const oldX = player.x;
+
+    const oldY = player.y;
+
+
+    player.x +=
+        dx*
+        player.speed*
+        dt;
+
+    player.y +=
+        dy*
+        player.speed*
+        dt;
+
+
+    /* BOUNDARIES */
+
+    player.x =
+        clamp(
+            player.x,
+            15,
+            canvas.width-15
+        );
+
+    player.y =
+        clamp(
+            player.y,
+            15,
+            canvas.height-15
+        );
+
+
+    /* OBSTACLE */
+
+    for(
+        const obstacle of obstacles
+    ) {
+
+        if(
+            circleRectCollision(
+                player,
+                obstacle
+            )
+        ) {
+
+            player.x = oldX;
+
+            player.y = oldY;
+
+            break;
+
+        }
+
+    }
+
+
+    /* OXYGEN */
+
+    oxygen -=
+        settings.oxygenDrain*
+        dt;
+
+    oxygen =
+        clamp(
+            oxygen,
+            0,
+            100
+        );
+
+
+    /* FLOOD */
+
+    flood +=
+        settings.floodRate*
+        dt;
+
+    flood =
+        clamp(
+            flood,
+            0,
+            100
+        );
+
+
+    /* SCORE */
+
+    score +=
+        .12*
+        level*
+        dt;
+
+
+    /* KEYS */
+
+    for(
+        const key of keys
+    ) {
+
+        key.pulse +=
+            .08*dt;
+
+
+        if(
+            !key.collected &&
+            distance(player,key)<25
+        ) {
+
+            key.collected = true;
+
+            collectedKeys++;
+
+            score +=
+                100*level;
+
+        }
+
+    }
+
+
+    /* ENEMIES */
+
+    for(
+        const enemy of enemies
+    ) {
+
+        const ex =
+            player.x-enemy.x;
+
+        const ey =
+            player.y-enemy.y;
+
+        const dist =
+            Math.hypot(ex,ey);
+
+
+        /* CHASE */
+
+        if(dist < 300) {
+
+            if(dist > 1) {
+
+                enemy.x +=
+                    (ex/dist)*
+                    enemy.speed*
+                    dt;
+
+                enemy.y +=
+                    (ey/dist)*
+                    enemy.speed*
+                    dt;
+
+            }
+
+        }
+
+
+        /* WANDER */
+
+        else {
+
+            enemy.wanderTimer -=
+                delta;
+
+
+            if(
+                enemy.wanderTimer <= 0
+            ) {
+
+                enemy.angle =
+                    random(
+                        0,
+                        Math.PI*2
+                    );
+
+                enemy.wanderTimer =
+                    random(
+                        500,
+                        1800
+                    );
+
+            }
+
+
+            enemy.x +=
+                Math.cos(
+                    enemy.angle
+                )*
+                enemy.speed*
+                .25*
+                dt;
+
+
+            enemy.y +=
+                Math.sin(
+                    enemy.angle
+                )*
+                enemy.speed*
+                .25*
+                dt;
+
+        }
+
+
+        /* BOUNDARIES */
+
+        enemy.x =
+            clamp(
+                enemy.x,
+                25,
+                canvas.width-25
+            );
+
+        enemy.y =
+            clamp(
+                enemy.y,
+                25,
+                canvas.height-25
+            );
+
+
+        /* PLAYER HIT */
+
+        if(
+            distance(player,enemy) <
+            player.radius+
+            enemy.radius
+        ) {
+
+            gameOver(
+                "THE OCTOPUS CAUGHT YOU!"
+            );
+
+            return;
+
+        }
+
+    }
+
+
+    /* EXIT */
+
+    if(
+
+        collectedKeys >=
+        requiredKeys &&
+
+        player.x >
+        door.x-30 &&
+
+        player.x <
+        door.x+30 &&
+
+        player.y >
+        door.y-35 &&
+
+        player.y <
+        door.y+35
+
+    ) {
+
+        score +=
+            Math.floor(oxygen*5)+
+            Math.floor((100-flood)*5);
+
+
+        gameState =
+            "levelComplete";
+
+
+        showMessage(
+
+            "LEVEL " +
+            level +
+            " COMPLETE!\n\n" +
+
+            "KEYS: " +
+            collectedKeys +
+            "/" +
+            requiredKeys +
+
+            "\nOXYGEN: " +
+            Math.floor(oxygen) +
+            "%" +
+
+            "\nFLOOD: " +
+            Math.floor(flood) +
+            "%" +
+
+            "\nSCORE: " +
+            Math.floor(score) +
+
+            "\n\nPRESS ENTER FOR NEXT LEVEL"
+
+        );
+
+
+        return;
+
+    }
+
+
+    /* OXYGEN */
+
+    if(oxygen <= 0) {
+
+        gameOver(
+            "OXYGEN DEPLETED!"
+        );
+
+        return;
+
+    }
+
+
+    /* FLOOD */
+
+    if(flood >= 100) {
+
+        gameOver(
+            "FLOOD REACHED 100%!\nYOU DROWNED!"
+        );
+
+        return;
+
+    }
+
+
+    updateHUD();
+
+}
+
+
+/* =========================================
+   DRAW
+========================================= */
+
+function draw() {
+
+    /* BACKGROUND */
+
+    ctx.fillStyle =
+        "#001010";
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /* GRID */
+
+    ctx.strokeStyle =
+        "rgba(0,255,65,.08)";
+
+    ctx.lineWidth = 1;
+
+
+    for(
+        let x=0;
+        x<=canvas.width;
+        x+=40
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(x,0);
+
+        ctx.lineTo(
+            x,
+            canvas.height
+        );
+
+        ctx.stroke();
+
+    }
+
+
+    for(
+        let y=0;
+        y<=canvas.height;
+        y+=40
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(0,y);
+
+        ctx.lineTo(
+            canvas.width,
+            y
+        );
+
+        ctx.stroke();
+
+    }
+
+
+    /* FLOOD */
+
+    const floodHeight =
+        canvas.height*
+        flood/100;
+
+
+    ctx.fillStyle =
+        "rgba(0,90,190,.35)";
+
+
+    ctx.fillRect(
+
+        0,
+
+        canvas.height-
+        floodHeight,
+
+        canvas.width,
+
+        floodHeight
+
+    );
+
+
+    /* WAVE */
+
+    const waveY =
+        canvas.height-
+        floodHeight;
+
+
+    ctx.strokeStyle =
+        "rgba(60,190,255,.55)";
+
+    ctx.lineWidth = 2;
+
+
+    ctx.beginPath();
+
+
+    for(
+        let x=0;
+        x<=canvas.width;
+        x+=10
+    ) {
+
+        const y =
+            waveY+
+            Math.sin(
+                x*.04+
+                performance.now()*.003
+            )*3;
+
+
+        ctx.lineTo(x,y);
+
+    }
+
+
+    ctx.stroke();
+
+
+    /* OBSTACLES */
+
+    for(
+        const obstacle of obstacles
+    ) {
+
+        ctx.fillStyle =
+            "#00382b";
+
+        ctx.strokeStyle =
+            "#00a060";
+
+        ctx.lineWidth = 2;
+
+
+        ctx.fillRect(
+
+            obstacle.x,
+            obstacle.y,
+            obstacle.width,
+            obstacle.height
+
+        );
+
+
+        ctx.strokeRect(
+
+            obstacle.x,
+            obstacle.y,
+            obstacle.width,
+            obstacle.height
+
+        );
+
+    }
+
+
+    /* KEYS */
+
+    for(
+        const key of keys
+    ) {
+
+        if(key.collected)
+            continue;
+
+
+        ctx.save();
+
+
+        ctx.shadowBlur =
+            10+
+            Math.sin(key.pulse)*4;
+
+        ctx.shadowColor =
+            "#ffe600";
+
+        ctx.strokeStyle =
+            "#ffe600";
+
+        ctx.lineWidth = 3;
+
+
+        /* RING */
+
+        ctx.beginPath();
+
+        ctx.arc(
+
+            key.x,
+            key.y,
+            8,
+            0,
+            Math.PI*2
+
+        );
+
+        ctx.stroke();
+
+
+        /* SHAFT */
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            key.x+7,
+            key.y
+        );
+
+        ctx.lineTo(
+            key.x+17,
+            key.y
+        );
+
+        ctx.lineTo(
+            key.x+17,
+            key.y+5
+        );
+
+        ctx.lineTo(
+            key.x+12,
+            key.y+5
+        );
+
+        ctx.stroke();
+
+
+        ctx.restore();
+
+    }
+
+
+    /* DOOR */
+
+    const unlocked =
+        collectedKeys >=
+        requiredKeys;
+
+
+    ctx.save();
+
+
+    ctx.strokeStyle =
+        unlocked
+            ? "#00ff41"
+            : "#555";
+
+
+    ctx.lineWidth = 4;
+
+
+    ctx.shadowBlur =
+        unlocked
+            ? 15
+            : 0;
+
+
+    ctx.shadowColor =
+        "#00ff41";
+
+
+    ctx.strokeRect(
+
+        door.x-
+        door.width/2,
+
+        door.y-
+        door.height/2,
+
+        door.width,
+        door.height
+
+    );
+
+
+    ctx.fillStyle =
+        unlocked
+            ? "#00ff41"
+            : "#555";
+
+
+    ctx.font =
+        "9px 'Press Start 2P'";
+
+
+    ctx.textAlign =
+        "center";
+
+
+    ctx.fillText(
+
+        unlocked
+            ? "EXIT"
+            : "LOCK",
+
+        door.x,
+
+        door.y+3
+
+    );
+
+
+    ctx.restore();
+
+
+    /* ENEMIES */
+
+    for(
+        const enemy of enemies
+    ) {
+
+        drawOctopus(
+            enemy.x,
+            enemy.y
+        );
+
+    }
+
+
+    /* PLAYER */
+
+    ctx.save();
+
+
+    ctx.fillStyle =
+        "#3bffe9";
+
+    ctx.shadowBlur = 15;
+
+    ctx.shadowColor =
+        "#3bffe9";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+
+        player.x,
+        player.y,
+        player.radius,
+        0,
+        Math.PI*2
+
+    );
+
+    ctx.fill();
+
+
+    ctx.restore();
+
+
+    /* FLOOD WARNING */
+
+    if(flood > 70) {
+
+        ctx.save();
+
+
+        ctx.fillStyle =
+            "#ff3030";
+
+        ctx.font =
+            "13px 'Press Start 2P'";
+
+        ctx.textAlign =
+            "center";
+
+
+        ctx.shadowBlur = 10;
+
+        ctx.shadowColor =
+            "#ff3030";
+
+
+        ctx.fillText(
+
+            "!!! FLOOD WARNING !!!",
+
+            canvas.width/2,
+
+            25
+
+        );
+
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================
+   OCTOPUS DRAWING
+========================================= */
+
+function drawOctopus(x,y) {
+
+    ctx.save();
+
+
+    ctx.translate(x,y);
+
+
+    ctx.fillStyle =
+        "#ff3030";
+
+    ctx.strokeStyle =
+        "#ff3030";
+
+
+    ctx.shadowBlur = 12;
+
+    ctx.shadowColor =
+        "#ff3030";
+
+
+    /* HEAD */
+
+    ctx.beginPath();
+
+    ctx.arc(
+
+        0,
+        -6,
+        18,
+        Math.PI,
+        0
+
+    );
+
+
+    ctx.lineTo(18,10);
+
+    ctx.lineTo(-18,10);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* TENTACLES */
+
+    ctx.lineWidth = 4;
+
+
+    for(
+        let i=-3;
+        i<=3;
+        i++
+    ) {
+
+        ctx.beginPath();
+
+
+        ctx.moveTo(
+            i*5,
+            7
+        );
+
+
+        ctx.lineTo(
+
+            i*6,
+
+            23+
+            Math.abs(i)*2
+
+        );
+
+
+        ctx.stroke();
+
+    }
+
+
+    /* EYES */
+
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle =
+        "#fff";
+
+
+    ctx.fillRect(
+        -8,
+        -10,
+        5,
+        5
+    );
+
+
+    ctx.fillRect(
+        3,
+        -10,
+        5,
+        5
+    );
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================
+   HUD
+========================================= */
+
+function updateHUD() {
+
+    scoreEl.textContent =
+        Math.floor(score);
+
+    levelEl.textContent =
+        level;
+
+    keysEl.textContent =
+        collectedKeys+
+        "/"+
+        requiredKeys;
+
+    oxygenEl.textContent =
+        Math.floor(oxygen);
+
+    floodEl.textContent =
+        Math.floor(flood);
+
+
+    /* OXYGEN */
+
+    oxygenFill.style.width =
+        oxygen+"%";
+
+    oxygenReading.textContent =
+        Math.floor(oxygen)+"%";
+
+
+    if(oxygen < 25) {
+
+        oxygenFill.style.background =
+            "#ff3030";
+
+        oxygenReading.style.color =
+            "#ff3030";
+
+    }
+
+    else if(oxygen < 50) {
+
+        oxygenFill.style.background =
+            "#ffe600";
+
+        oxygenReading.style.color =
+            "#ffe600";
+
+    }
+
+    else {
+
+        oxygenFill.style.background =
+            "#3bffe9";
+
+        oxygenReading.style.color =
+            "#3bffe9";
+
+    }
+
+
+    /* CLOSEST ENEMY */
+
+    let closest =
+        Infinity;
+
+
+    for(
+        const enemy of enemies
+    ) {
+
+        closest =
+            Math.min(
+                closest,
+                distance(
+                    player,
+                    enemy
+                )
+            );
+
+    }
+
+
+    if(closest === Infinity) {
+
+        proximityEl.textContent =
+            "---";
+
+    }
+
+    else {
+
+        proximityEl.textContent =
+            Math.floor(closest);
+
+    }
+
+
+    /* DANGER */
+
+    const danger =
+        closest < 110;
+
+
+    proximityBox.classList.toggle(
+        "danger",
+        danger
+    );
+
+
+    vignette.classList.toggle(
+        "danger",
+        danger
+    );
+
+
+    floodBox.classList.toggle(
+        "danger",
+        flood > 70
+    );
+
+
+    updateRadar();
+
+}
+
+
+/* =========================================
+   RADAR
+========================================= */
+
+function updateRadar() {
+
+    radarEnemies.innerHTML = "";
+
+
+    let closest =
+        Infinity;
+
+
+    for(
+        const enemy of enemies
+    ) {
+
+        const dx =
+            enemy.x-player.x;
+
+        const dy =
+            enemy.y-player.y;
+
+
+        const dist =
+            Math.hypot(dx,dy);
+
+
+        closest =
+            Math.min(
+                closest,
+                dist
+            );
+
+
+        const scale =
+            .18;
+
+
+        const rx =
+            clamp(
+                60+dx*scale,
+                4,
+                116
+            );
+
+
+        const ry =
+            clamp(
+                60+dy*scale,
+                4,
+                116
+            );
+
+
+        const dot =
+            document.createElement(
+                "div"
+            );
+
+
+        dot.className =
+            "radar-dot";
+
+
+        dot.style.left =
+            rx+"px";
+
+
+        dot.style.top =
+            ry+"px";
+
+
+        radarEnemies.appendChild(
+            dot
+        );
+
+    }
+
+
+    if(closest < 100) {
+
+        radarStatus.textContent =
+            "!!! DANGER !!!";
+
+        radarStatus.style.color =
+            "#ff3030";
+
+    }
+
+    else if(closest < 200) {
+
+        radarStatus.textContent =
+            "ENEMY NEARBY";
+
+        radarStatus.style.color =
+            "#ffe600";
+
+    }
+
+    else {
+
+        radarStatus.textContent =
+            "SCANNING...";
+
+        radarStatus.style.color =
+            "#00ff41";
+
+    }
+
+}
+
+
+/* =========================================
+   GAME OVER
+========================================= */
+
+function gameOver(reason) {
+
+    gameState =
+        "gameover";
+
+
+    screen.classList.remove(
+        "shake"
+    );
+
+
+    void screen.offsetWidth;
+
+
+    screen.classList.add(
+        "shake"
+    );
+
+
+    showMessage(
+
+        reason+
+
+        "\n\nLEVEL: "+
+        level+
+
+        "\nSCORE: "+
+        Math.floor(score)+
+
+        "\n\nPRESS ENTER TO RESTART"
+
+    );
+
+}
+
+
+/* =========================================
+   SHOW MESSAGE
+========================================= */
+
+function showMessage(text) {
+
+    messageText.textContent =
+        text;
+
+
+    messageOverlay.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+/* =========================================
+   INITIAL SCREEN
+========================================= */
+
+ctx.fillStyle =
+    "#001010";
+
+
+ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+);
+
+
+ctx.fillStyle =
+    "#00ff41";
+
+
+ctx.font =
+    "14px 'Press Start 2P'";
+
+
+ctx.textAlign =
+    "center";
+
+
+ctx.fillText(
+
+    "PRESS ENTER TO START",
+
+    canvas.width/2,
+
+    canvas.height/2
+
+);
+
+
+console.log(
+    "OCTOPUS ESCAPE LOADED SUCCESSFULLY"
+);
+
+</script>
+
+</body>
+</html>
